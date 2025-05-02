@@ -5,5 +5,8 @@
   "workspaces": ["Frontend", "Backend"],
   "engines": {
     "node": "18.x"
+  },
+  "scripts": {
+    "start": "npm run start --workspace Backend && npm run start --workspace Frontend"
   }
 }
