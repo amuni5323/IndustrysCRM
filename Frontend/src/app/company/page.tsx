@@ -1,246 +1,232 @@
-"use client"
+'use client';
 
-import Navbar from "@/components/Navbar"
-import Footer from "@/components/Footer"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { createClient } from "@supabase/supabase-js"
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@supabase/supabase-js';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
-export const supabase = createClient(
+const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+);
 
-export default function CompanyPage() {
-  const router = useRouter()
+export default function CompanyRegisterPage() {
+  const router = useRouter();
 
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [name, setName] = useState("")
-  const [logo, setLogo] = useState<File | null>(null)
-  const [description, setDescription] = useState("")
-  const [about, setAbout] = useState("")
-  const [contact, setContact] = useState("")
-  const [footerLinks, setFooterLinks] = useState([{ name: "", url: "" }])
-  const [footerIcons, setFooterIcons] = useState([{ name: "", file: null }])
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [logo, setLogo] = useState<File | null>(null);
+  const [description, setDescription] = useState('');
+  const [about, setAbout] = useState('');
+  const [contact, setContact] = useState('');
+  const [footerLinks, setFooterLinks] = useState([{ name: '', url: '' }]);
+  const [footerIcons, setFooterIcons] = useState([{ name: '', file: null }]);
+  const [sampleImages, setSampleImages] = useState<File[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
-  const handleRegister = async (e: any) => {
-    e.preventDefault()
+  const validImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
-    const slug = name.toLowerCase().replace(/\s+/g, "-") // ✅ generate slug from name
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (loading) return;
+    setLoading(true);
+
+    const slug = name.toLowerCase().replace(/\s+/g, '-');
 
     if (!email || !password || !name) {
-      alert("Please fill out all required fields.")
-      return
-    }
-
-    const validImageTypes = ["image/jpeg", "image/png", "image/gif"]
-    if (logo && !validImageTypes.includes(logo.type)) {
-      alert("Invalid image format. Only JPG, PNG, and GIF are allowed.")
-      return
+      alert('Please fill out all required fields.');
+      setLoading(false);
+      return;
     }
 
     try {
+      console.log("Starting Sign Up...");
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
-      })
-
-      if (signUpError || !signUpData?.user) {
-        throw new Error(signUpError?.message || "User sign-up failed")
-      }
-
-      const { data: sessionData, error: sessionError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      if (sessionError) {
-        throw new Error(sessionError.message)
-      }
-
-      const user = sessionData.user
-
-      let logoUrl = ""
-      if (logo) {
-        const { data, error: uploadError } = await supabase.storage
-          .from("logos")
-          .upload(`${name}-${Date.now()}`, logo)
-
-        if (uploadError) {
-          throw new Error(uploadError.message)
-        }
-
-        logoUrl = supabase.storage.from("logos").getPublicUrl(data.path).data.publicUrl
-      }
-
-      const { error: insertError } = await supabase.from("companies").insert([
-        {
-          user_id: user.id,
-          email,
-          name,
-          slug, // ✅ include slug
-          description,
-          about,
-          contact,
-          footer_links: footerLinks,
-          footer_icons: footerIcons.map(({ name }) => ({ name })),
-          logo_url: logoUrl,
+        options: {
+          emailRedirectTo: `${window.location.origin}/email-callback?slug=${slug}`,
         },
-      ])
+      });
+
+      if (signUpError) {
+        console.error('Sign Up Error:', signUpError);
+        setMessage(signUpError.message);
+        setLoading(false);
+        return;
+      }
+
+      setMessage('Check your email for confirmation');
+      console.log("Sign Up Success:", signUpData);
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user?.id;
+
+      if (!userId) {
+        console.error('No user ID found');
+        setLoading(false);
+        return;
+      }
+
+      console.log("User ID:", userId);
+
+      let logoUrl = '';
+      if (logo && validImageTypes.includes(logo.type)) {
+        const logoName = `${slug}-logo-${Date.now()}`;
+        const { data, error } = await supabase.storage.from('logos').upload(logoName, logo);
+        if (error) throw new Error(`Logo upload failed: ${error.message}`);
+        logoUrl = supabase.storage.from('logos').getPublicUrl(data.path).data.publicUrl;
+        console.log("Logo uploaded successfully:", logoUrl);
+      }
+
+      const sampleImageUrls: string[] = [];
+      for (const file of sampleImages) {
+        if (!validImageTypes.includes(file.type)) continue;
+        const fileName = `${slug}-sample-${Date.now()}-${file.name}`;
+        const { data, error } = await supabase.storage.from('sample-images').upload(fileName, file);
+        if (error) throw new Error(`Sample image upload failed: ${error.message}`);
+        sampleImageUrls.push(supabase.storage.from('sample-images').getPublicUrl(data.path).data.publicUrl);
+        console.log("Sample image uploaded:", sampleImageUrls[sampleImageUrls.length - 1]);
+      }
+
+      const footerIconUrls: { name: string; url: string }[] = [];
+      for (const icon of footerIcons) {
+        if (icon.file && validImageTypes.includes(icon.file.type)) {
+          const fileName = `${slug}-icon-${Date.now()}-${icon.file.name}`;
+          const { data, error } = await supabase.storage.from('footer-icons').upload(fileName, icon.file);
+          if (error) throw new Error(`Footer icon upload failed: ${error.message}`);
+          footerIconUrls.push({ name: icon.name, url: supabase.storage.from('footer-icons').getPublicUrl(data.path).data.publicUrl });
+          console.log("Footer icon uploaded:", footerIconUrls[footerIconUrls.length - 1]);
+        }
+      }
+
+      console.log("Inserting company data into Supabase...");
+      const { data, error: insertError } = await supabase.from('companies').insert([{
+        user_id: userId,
+        email,
+        company_name: name,
+        slug,
+        description,
+        about_us: about,
+        contact_info: contact,
+        footer_links: footerLinks, // Assuming your Supabase column is now of type jsonb[]
+        footer_icons: footerIconUrls, // Assuming your Supabase column is now of type jsonb[]
+        logo_url: logoUrl,
+        sample_images: sampleImageUrls, // Assuming your Supabase column is now of type text[]
+      }]);
 
       if (insertError) {
-        throw new Error(insertError.message)
+        console.error('Insert Error:', insertError);
+        alert('Error saving company data: ' + insertError.message);
+        setLoading(false);
+        return;
       }
 
-      router.push(`/${slug}`) // ✅ use the same slug for routing
-    } catch (error: any) {
-      console.error("Error:", error.message)
-      alert(error.message || "An unexpected error occurred.")
+      console.log('Inserted Data:', data);
+
+      await fetch('/api/send-registration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          company_name: name,
+          logo_url: logoUrl,
+          description,
+          about_us: about,
+          contact_info: contact,
+          footer_links: footerLinks,
+          footer_icons: footerIconUrls.map((icon) => icon.name), // Sending only names to the API route
+        }),
+      });
+
+      alert('Registration successful! Please check your email to confirm your account.');
+    } catch (err: any) {
+      console.error("Registration Error:", err);
+      alert(err.message || 'Something went wrong during registration.');
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
   const handleFooterLinkChange = (index: number, key: string, value: string) => {
-    const updated = [...footerLinks]
-    updated[index][key] = value
-    setFooterLinks(updated)
-  }
+    const updated = [...footerLinks];
+    updated[index][key] = value;
+    setFooterLinks(updated);
+  };
 
   const handleFooterIconChange = (index: number, key: string, value: any) => {
-    const updated = [...footerIcons]
-    updated[index][key] = value
-    setFooterIcons(updated)
-  }
+    const updated = [...footerIcons];
+    updated[index][key] = value;
+    setFooterIcons(updated);
+  };
 
   return (
     <main className="min-h-screen flex flex-col">
       <Navbar />
       <div className="flex-1 p-10 max-w-5xl mx-auto">
-        <form
-          onSubmit={handleRegister}
-          className="mb-12 bg-white p-6 rounded-xl shadow-md space-y-8"
-        >
-          <h2 className="text-2xl font-bold mb-4">Register Your Company</h2>
+        <form onSubmit={handleRegister} className="bg-white p-6 rounded-xl shadow-md space-y-8">
+          <h2 className="text-2xl font-bold">Register Your Company</h2>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <Input
-              type="email"
-              placeholder="Company login email (for internal use)"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <Input
-              type="password"
-              placeholder="Password for your internal dashboard"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <Input type="email" placeholder="Company email (for login)" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
 
-          <div className="grid gap-4">
-            <Input
-              type="text"
-              placeholder="Your company's official name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
+          <Input type="text" placeholder="Company Name" value={name} onChange={(e) => setName(e.target.value)} />
+          <Input type="file" accept="image/*" onChange={(e) => setLogo(e.target.files?.[0] || null)} />
+
+          <div>
+            <h3 className="font-semibold mb-2">Sample Images</h3>
             <Input
               type="file"
               accept="image/*"
-              onChange={(e) => setLogo(e.target.files?.[0] || null)}
-              placeholder="Upload your logo"
+              multiple
+              onChange={(e) => setSampleImages(prev => [...prev, ...Array.from(e.target.files || [])])}
             />
+            <ul className="mt-2 text-sm space-y-1">
+              {sampleImages.map((file, i) => (
+                <li key={i}>{file.name} ({Math.round(file.size / 1024)} KB)</li>
+              ))}
+            </ul>
           </div>
 
-          <div className="grid gap-8 md:grid-cols-3">
-            <div className="flex flex-col gap-2">
-              <h3 className="text-xl font-semibold">Company Description</h3>
-              <textarea
-                placeholder="Brief overview of your services or industry..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="p-3 rounded-md border border-zinc-300 resize-none"
-                rows={4}
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <h3 className="text-xl font-semibold">About Us</h3>
-              <textarea
-                placeholder="Your team background, goals, or story..."
-                value={about}
-                onChange={(e) => setAbout(e.target.value)}
-                className="p-3 rounded-md border border-zinc-300 resize-none"
-                rows={4}
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <h3 className="text-xl font-semibold">Contact Information</h3>
-              <textarea
-                placeholder="Email, phone number, office location, etc..."
-                value={contact}
-                onChange={(e) => setContact(e.target.value)}
-                className="p-3 rounded-md border border-zinc-300 resize-none"
-                rows={4}
-              />
-            </div>
-          </div>
+          <textarea placeholder="Company Description" value={description} onChange={(e) => setDescription(e.target.value)} className="w-full border p-2 rounded-md" />
+          <textarea placeholder="About Us" value={about} onChange={(e) => setAbout(e.target.value)} className="w-full border p-2 rounded-md" />
+          <textarea placeholder="Contact Info" value={contact} onChange={(e) => setContact(e.target.value)} className="w-full border p-2 rounded-md" />
 
-          <div className="space-y-4">
-            <h3 className="text-xl font-semibold">Footer Links</h3>
+          <div>
+            <h3 className="font-semibold mb-2">Footer Links</h3>
             {footerLinks.map((link, i) => (
-              <div key={i} className="grid grid-cols-2 gap-4">
-                <Input
-                  placeholder="Link title (e.g., Privacy Policy)"
-                  value={link.name}
-                  onChange={(e) => handleFooterLinkChange(i, "name", e.target.value)}
-                />
-                <Input
-                  placeholder="Link URL (e.g., https://yourcompany.com/privacy)"
-                  value={link.url}
-                  onChange={(e) => handleFooterLinkChange(i, "url", e.target.value)}
-                />
+              <div key={i} className="grid gap-2 md:grid-cols-2 mb-2">
+                <Input placeholder="Link Name" value={link.name} onChange={(e) => handleFooterLinkChange(i, 'name', e.target.value)} />
+                <Input placeholder="URL" value={link.url} onChange={(e) => handleFooterLinkChange(i, 'url', e.target.value)} />
               </div>
             ))}
-            <Button
-              type="button"
-              onClick={() => setFooterLinks([...footerLinks, { name: "", url: "" }])}
-            >
-              + Add Link
-            </Button>
+            <Button type="button" onClick={() => setFooterLinks([...footerLinks, { name: '', url: '' }])}>Add Link</Button>
           </div>
 
-          <div className="space-y-4">
-            <h3 className="text-xl font-semibold">Footer Icons</h3>
+          <div>
+            <h3 className="font-semibold mb-2">Footer Icons</h3>
             {footerIcons.map((icon, i) => (
-              <div key={i} className="grid grid-cols-2 gap-4 items-center">
-                <Input
-                  placeholder="Icon label (e.g., Facebook, LinkedIn)"
-                  value={icon.name}
-                  onChange={(e) => handleFooterIconChange(i, "name", e.target.value)}
-                />
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleFooterIconChange(i, "file", e.target.files?.[0])}
-                />
+              <div key={i} className="grid gap-2 md:grid-cols-2 mb-2">
+                <Input placeholder="Icon Name" value={icon.name} onChange={(e) => handleFooterIconChange(i, 'name', e.target.value)} />
+                <Input type="file" accept="image/*" onChange={(e) => handleFooterIconChange(i, 'file', e.target.files?.[0] || null)} />
               </div>
             ))}
-            <Button
-              type="button"
-              onClick={() => setFooterIcons([...footerIcons, { name: "", file: null }])}
-            >
-              + Add Icon
-            </Button>
+            <Button type="button" onClick={() => setFooterIcons([...footerIcons, { name: '', file: null }])}>Add Icon</Button>
           </div>
 
-          <div className="flex justify-end">
-            <Button type="submit">Submit Company</Button>
-          </div>
+          <Button type="submit" disabled={loading}>{loading ? 'Loading...' : 'Register Company'}</Button>
+
+          {message && <div className="text-red-500">{message}</div>}
         </form>
       </div>
       <Footer />
     </main>
-  )
+  );
 }
