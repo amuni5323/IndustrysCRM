@@ -6,7 +6,8 @@ import slugify from 'slugify'; // Used to generate slugs from company names
 // Initialize Supabase client
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
-export async function POST(req: Request) {
+export async function POST(req) {
+
   const body = await req.json();
 
   const {
