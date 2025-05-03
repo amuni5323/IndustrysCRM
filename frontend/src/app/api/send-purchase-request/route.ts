@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { sendPurchaseRequestEmail } from '../../../utils/sendEmail';  // Keep this path as is
-import { createServerClient } from '../../../utils/supabase/server';  // Correct import for server-side client
+import { sendPurchaseRequestEmail } from '@/utils/sendEmail';
+import { createServerClient } from '@/utils/supabase/server';
 
 export async function POST(request: Request) {
   const { name, email, phone, companySlug, message } = await request.json();
@@ -9,12 +9,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
-  // Create a Supabase server-side client
   const supabase = createServerClient();
 
   const { data, error } = await supabase
     .from('purchase_requests')
-    .insert([{ customer_name: name, customer_email: email, customer_phone: phone, company_id: companySlug, message }]);
+    .insert([
+      {
+        customer_name: name,
+        customer_email: email,
+        customer_phone: phone,
+        company_id: companySlug,
+        message,
+      },
+    ]);
 
   if (error) {
     return NextResponse.json({ error: 'Failed to save request' }, { status: 500 });
@@ -31,7 +38,10 @@ export async function POST(request: Request) {
   }
 
   const emailSent = await sendPurchaseRequestEmail(companyData.email, {
-    name, email, phone, message
+    name,
+    email,
+    phone,
+    message,
   });
 
   if (!emailSent) {
