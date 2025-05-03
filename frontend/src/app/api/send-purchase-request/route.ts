@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { sendPurchaseRequestEmail } from '../../../utils/sendEmail';  // Update this path
 import { supabase } from '../../../utils/supabase';  // Update this path
+import { createClient } from '../../../utils/supabase'; // or whatever the correct relative path is
 
 export async function POST(request: Request) {
   const { name, email, phone, companySlug, message } = await request.json();
