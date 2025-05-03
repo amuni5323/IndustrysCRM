@@ -1,6 +1,7 @@
 
 
-import { createServerClient } from '../../../utils/supabase/server'; // ✅ your existing file
+import { createServerClient } from '@/utils/supabase/server';
+ // ✅ your existing file
 import { redirect } from 'next/navigation';
 
 interface Props {
