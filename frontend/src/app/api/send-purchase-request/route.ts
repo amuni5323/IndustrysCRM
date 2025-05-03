@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
-import { sendPurchaseRequestEmail } from '../../../utils/sendEmail';  // Update this path
-import { supabase } from '../../../utils/supabase';  // Update this path
-import { createClient } from '../../../utils/supabase'; // or whatever the correct relative path is
+import { sendPurchaseRequestEmail } from '../../../utils/sendEmail';  // Keep this path as is
+import { createServerClient } from '../../../utils/supabase/server';  // Correct import for server-side client
 
 export async function POST(request: Request) {
   const { name, email, phone, companySlug, message } = await request.json();
@@ -9,6 +8,9 @@ export async function POST(request: Request) {
   if (!name || !email || !phone || !companySlug || !message) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
+
+  // Create a Supabase server-side client
+  const supabase = createServerClient();
 
   const { data, error } = await supabase
     .from('purchase_requests')
