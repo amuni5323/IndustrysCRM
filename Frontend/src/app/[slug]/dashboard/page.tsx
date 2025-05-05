@@ -328,23 +328,31 @@
 // export default DashboardPage;
 
 
-import { GetServerSideProps } from 'next';
+// src/app/[slug]/dashboard/page.tsx
+
+import { notFound } from 'next/navigation'; // for handling 404
 
 interface PageProps {
-  params: { slug: string }; // Ensure this matches the expected prop structure
+  params: { slug: string };
 }
 
-const DashboardPage: React.FC<PageProps> = ({ params }) => {
-  return <div>Dashboard for {params.slug}</div>;
-};
+const DashboardPage: React.FC<PageProps> = async ({ params }) => {
+  const { slug } = params;
 
-// Ensure params is passed correctly from getServerSideProps
-export const getServerSideProps: GetServerSideProps = async ({ params }) => {
-  return { 
-    props: { 
-      params: { slug: params?.slug || '' } // Ensure the slug is passed correctly
-    } 
-  };
+  // Fetch data for the company or handle it as needed
+  const res = await fetch(`https://api.example.com/companies/${slug}`);
+  const companyData = await res.json();
+
+  if (!companyData) {
+    notFound(); // Optional: Use this to trigger a 404 if no company data is found
+  }
+
+  return (
+    <div>
+      <h1>{companyData.name}</h1>
+      <p>{companyData.description}</p>
+    </div>
+  );
 };
 
 export default DashboardPage;
