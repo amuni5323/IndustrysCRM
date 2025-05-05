@@ -1,60 +1,60 @@
 
+//2222
+// import { createServerClient } from '@/utils/supabase/server';
+//  // ✅ your existing file
+// import { redirect } from 'next/navigation';
 
-import { createServerClient } from '@/utils/supabase/server';
- // ✅ your existing file
-import { redirect } from 'next/navigation';
+// interface Props {
+//   params: {
+//     slug: string; // The slug of the company (e.g., 'cn', 'amuni', etc.)
+//   };
+// }
 
-interface Props {
-  params: {
-    slug: string; // The slug of the company (e.g., 'cn', 'amuni', etc.)
-  };
-}
+// const DashboardPage = async ({ params }: Props) => {
+//   const { slug } = params;
+//   const supabase = createServerClient();
 
-const DashboardPage = async ({ params }: Props) => {
-  const { slug } = params;
-  const supabase = createServerClient();
+//   // ✅ Directly fetch the customer data for the given company_slug
+//   const { data: customers, error: customersError } = await supabase
+//     .from('customers')
+//     .select('*')
+//     .eq('company_slug', slug); // Use the company_slug from the URL
 
-  // ✅ Directly fetch the customer data for the given company_slug
-  const { data: customers, error: customersError } = await supabase
-    .from('customers')
-    .select('*')
-    .eq('company_slug', slug); // Use the company_slug from the URL
+//   if (customersError) {
+//     console.error('Customer error:', customersError);
+//     return (
+//       <div className="p-8 text-red-600">
+//         Error loading customer data: {customersError.message}
+//       </div>
+//     );
+//   }
 
-  if (customersError) {
-    console.error('Customer error:', customersError);
-    return (
-      <div className="p-8 text-red-600">
-        Error loading customer data: {customersError.message}
-      </div>
-    );
-  }
+//   if (customers && customers.length > 0) {
+//     return (
+//       <div className="p-8">
+//         <h1 className="text-3xl font-bold mb-6">Customers for {slug}:</h1>
+//         <div className="space-y-4">
+//           {customers.map((customer) => (
+//             <div key={customer.id} className="p-4 border rounded bg-white shadow">
+//               <p><strong>Name:</strong> {customer.name}</p>
+//               <p><strong>Email:</strong> {customer.email}</p>
+//               <p><strong>Phone:</strong> {customer.phone}</p>
+//             </div>
+//           ))}
+//         </div>
+//       </div>
+//     );
+//   }
 
-  if (customers && customers.length > 0) {
-    return (
-      <div className="p-8">
-        <h1 className="text-3xl font-bold mb-6">Customers for {slug}:</h1>
-        <div className="space-y-4">
-          {customers.map((customer) => (
-            <div key={customer.id} className="p-4 border rounded bg-white shadow">
-              <p><strong>Name:</strong> {customer.name}</p>
-              <p><strong>Email:</strong> {customer.email}</p>
-              <p><strong>Phone:</strong> {customer.phone}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+//   // If no customer data is found for the given company
+//   return (
+//     <div className="p-8 text-red-600">
+//       No customers found for company <strong>{slug}</strong>. You may need to register.
+//     </div>
+//   );
+// };
 
-  // If no customer data is found for the given company
-  return (
-    <div className="p-8 text-red-600">
-      No customers found for company <strong>{slug}</strong>. You may need to register.
-    </div>
-  );
-};
-
-export default DashboardPage;
+// export default DashboardPage;
 
 // src/app/[slug]/dashboard/page.tsx
 
@@ -185,3 +185,87 @@ export default DashboardPage;
 // };
 
 // export default DashboardPage;
+
+//3333
+
+import { createServerClient } from '@/utils/supabase/server';
+import { GetServerSideProps } from 'next';
+import { redirect } from 'next/navigation';
+
+interface Props {
+  params: {
+    slug: string; // The slug of the company (e.g., 'cn', 'amuni', etc.)
+  };
+  customers: Array<{ id: string; name: string; email: string; phone: string }>;
+  customersError?: string;
+}
+
+const DashboardPage = ({ params, customers, customersError }: Props) => {
+  const { slug } = params;
+
+  if (customersError) {
+    return (
+      <div className="p-8 text-red-600">
+        Error loading customer data: {customersError}
+      </div>
+    );
+  }
+
+  if (customers.length > 0) {
+    return (
+      <div className="p-8">
+        <h1 className="text-3xl font-bold mb-6">Customers for {slug}:</h1>
+        <div className="space-y-4">
+          {customers.map((customer) => (
+            <div key={customer.id} className="p-4 border rounded bg-white shadow">
+              <p><strong>Name:</strong> {customer.name}</p>
+              <p><strong>Email:</strong> {customer.email}</p>
+              <p><strong>Phone:</strong> {customer.phone}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // If no customer data is found for the given company
+  return (
+    <div className="p-8 text-red-600">
+      No customers found for company <strong>{slug}</strong>. You may need to register.
+    </div>
+  );
+};
+
+// Fetching data on the server side with getServerSideProps
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const slug = context.params?.slug as string; // The slug is passed from the URL
+
+  const supabase = createServerClient();
+
+  // Fetch the customer data for the given company_slug
+  const { data: customers, error: customersError } = await supabase
+    .from('customers')
+    .select('*')
+    .eq('company_slug', slug);
+
+  if (customersError) {
+    console.error('Customer error:', customersError);
+    return {
+      props: {
+        params: { slug },
+        customers: [],
+        customersError: customersError.message,
+      },
+    };
+  }
+
+  // Pass the fetched customer data to the page as props
+  return {
+    props: {
+      params: { slug },
+      customers: customers || [],
+    },
+  };
+};
+
+export default DashboardPage;
