@@ -3,7 +3,9 @@ import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import Image from 'next/image';
 import { Database } from '@/types/supabase';
-import ClientButton from './ClientButton';
+// import ClientButton from './ClientButton';
+import ClientButton from '@/app/[slug]/ClientButton';
+
 import MiniSiteNavbar from '@/components/MiniSiteNavbar';
 
 export const dynamic = 'force-dynamic';
