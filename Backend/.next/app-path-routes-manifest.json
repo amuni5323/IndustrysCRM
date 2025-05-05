@@ -1,0 +1,5 @@
+{
+  "/api/send-registration/route": "/api/send-registration",
+  "/api/verify-email/route": "/api/verify-email",
+  "/api/upload-icon/route": "/api/upload-icon"
+}
