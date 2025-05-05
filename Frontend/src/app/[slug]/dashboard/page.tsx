@@ -273,56 +273,78 @@
 
 // /444
 
-import { createServerClient } from '@/utils/supabase/server';
+// import { createServerClient } from '@/utils/supabase/server';
 
-interface Props {
-  params: {
-    slug: string; // The slug of the company (e.g., 'cn', 'amuni', etc.)
-  };
+// interface Props {
+//   params: {
+//     slug: string; // The slug of the company (e.g., 'cn', 'amuni', etc.)
+//   };
+// }
+
+// const DashboardPage = async ({ params }: Props) => {
+//   const { slug } = params;
+//   const supabase = createServerClient();
+
+//   // Fetching data on the server side
+//   const { data: customers, error: customersError } = await supabase
+//     .from('customers')
+//     .select('*')
+//     .eq('company_slug', slug);
+
+//   if (customersError) {
+//     console.error('Customer error:', customersError);
+//     return (
+//       <div className="p-8 text-red-600">
+//         Error loading customer data: {customersError.message}
+//       </div>
+//     );
+//   }
+
+//   if (customers.length > 0) {
+//     return (
+//       <div className="p-8">
+//         <h1 className="text-3xl font-bold mb-6">Customers for {slug}:</h1>
+//         <div className="space-y-4">
+//           {customers.map((customer) => (
+//             <div key={customer.id} className="p-4 border rounded bg-white shadow">
+//               <p><strong>Name:</strong> {customer.name}</p>
+//               <p><strong>Email:</strong> {customer.email}</p>
+//               <p><strong>Phone:</strong> {customer.phone}</p>
+//             </div>
+//           ))}
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   // If no customer data is found for the given company
+//   return (
+//     <div className="p-8 text-red-600">
+//       No customers found for company <strong>{slug}</strong>. You may need to register.
+//     </div>
+//   );
+// };
+
+// export default DashboardPage;
+
+
+import { GetServerSideProps } from 'next';
+
+interface PageProps {
+  params: { slug: string }; // Ensure this matches the expected prop structure
 }
 
-const DashboardPage = async ({ params }: Props) => {
-  const { slug } = params;
-  const supabase = createServerClient();
+const DashboardPage: React.FC<PageProps> = ({ params }) => {
+  return <div>Dashboard for {params.slug}</div>;
+};
 
-  // Fetching data on the server side
-  const { data: customers, error: customersError } = await supabase
-    .from('customers')
-    .select('*')
-    .eq('company_slug', slug);
-
-  if (customersError) {
-    console.error('Customer error:', customersError);
-    return (
-      <div className="p-8 text-red-600">
-        Error loading customer data: {customersError.message}
-      </div>
-    );
-  }
-
-  if (customers.length > 0) {
-    return (
-      <div className="p-8">
-        <h1 className="text-3xl font-bold mb-6">Customers for {slug}:</h1>
-        <div className="space-y-4">
-          {customers.map((customer) => (
-            <div key={customer.id} className="p-4 border rounded bg-white shadow">
-              <p><strong>Name:</strong> {customer.name}</p>
-              <p><strong>Email:</strong> {customer.email}</p>
-              <p><strong>Phone:</strong> {customer.phone}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // If no customer data is found for the given company
-  return (
-    <div className="p-8 text-red-600">
-      No customers found for company <strong>{slug}</strong>. You may need to register.
-    </div>
-  );
+// Ensure params is passed correctly from getServerSideProps
+export const getServerSideProps: GetServerSideProps = async ({ params }) => {
+  return { 
+    props: { 
+      params: { slug: params?.slug || '' } // Ensure the slug is passed correctly
+    } 
+  };
 };
 
 export default DashboardPage;
