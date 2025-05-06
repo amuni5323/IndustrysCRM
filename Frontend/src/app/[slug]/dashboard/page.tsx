@@ -330,27 +330,32 @@
 
 // src/app/[slug]/dashboard/page.tsx
 
-import { notFound } from 'next/navigation'; // for handling 404
+// src/app/[slug]/dashboard/page.tsx
 
-interface PageProps {
-  params: { slug: string };
+// src/app/[slug]/dashboard/page.tsx
+import { notFound } from 'next/navigation';
+
+interface DashboardPageProps {
+  params: {
+    slug: string;
+  };
 }
 
-const DashboardPage: React.FC<PageProps> = async ({ params }) => {
+const DashboardPage = async ({ params }: DashboardPageProps) => {
   const { slug } = params;
 
-  // Fetch data for the company or handle it as needed
-  const res = await fetch(`https://api.example.com/companies/${slug}`);
-  const companyData = await res.json();
+  // Fetch data based on the slug
+  const res = await fetch(`/api/companies/${slug}`);
+  const company = await res.json();
 
-  if (!companyData) {
-    notFound(); // Optional: Use this to trigger a 404 if no company data is found
+  if (!company) {
+    notFound(); // Handle not found
   }
 
   return (
     <div>
-      <h1>{companyData.name}</h1>
-      <p>{companyData.description}</p>
+      <h1>{company.name}</h1>
+      <p>{company.description}</p>
     </div>
   );
 };
